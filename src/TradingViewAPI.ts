@@ -14,7 +14,7 @@ export class TradingViewAPI {
     this._resetWebSocket();
   }
 
-  public getTicker(tickerName: string): Promise<TickerData> {
+  public getTicker(tickerName: string, lookInCache: boolean = true): Promise<TickerData> {
     return new Promise((resolve, reject) => {
       const each = 10;
       const runs = 3000 / each; // time in ms divided by above
@@ -25,7 +25,7 @@ export class TradingViewAPI {
 
       const interval = setInterval(() => {
         if (this.ws.readyState === WebSocket.OPEN && this.sessionRegistered) {
-          this._getTicker(tickerName, resolve, reject);
+          this._getTicker(tickerName, lookInCache, resolve, reject);
           clearInterval(interval);
         } else if (!runs) {
           reject("WebSocket connection is closed.");
@@ -37,17 +37,19 @@ export class TradingViewAPI {
 
   private _getTicker(
     tickerName: string,
+    lookInCache: boolean = true,
     resolve: (data: TickerData) => void,
     reject: (message: string) => void
   ) {
-    // check if ticker is tracked, and if it is, return stored data
+    // check (if asked) if ticker is tracked, and if it is, return stored data
 
-    if (this.tickerData[tickerName] && this.tickerData[tickerName].pro_name) {
-      resolve(this.tickerData[tickerName]);
-      this.tickerData[tickerName].last_retrieved = new Date();
-      return;
+    if (lookInCache) {
+      if (this.tickerData[tickerName] && this.tickerData[tickerName].pro_name) {
+        resolve(this.tickerData[tickerName]);
+        this.tickerData[tickerName].last_retrieved = new Date();
+        return;
+      }
     }
-
     // if not, register and wait for data
 
     this._registerTicker(tickerName);
